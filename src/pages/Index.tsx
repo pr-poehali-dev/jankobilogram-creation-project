@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Icon from "@/components/ui/icon";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Screen = "auth" | "app";
+type Screen = "auth" | "app" | "admin";
 type AuthTab = "login" | "register";
 type AppTab = "chats" | "contacts" | "search" | "settings" | "profile";
 type MessageType = "text" | "voice" | "image" | "sticker" | "system";
@@ -18,6 +18,7 @@ interface User {
   lastSeen?: string;
   bio?: string;
   statusText?: string;
+  isAdmin?: boolean;
 }
 
 interface Message {
@@ -194,7 +195,9 @@ function AuthScreen({ onLogin }: { onLogin: (user: User) => void }) {
       if (!phone.trim() || !password.trim()) { setError("Введите телефон и пароль"); return; }
       setLoading(true);
       setTimeout(() => {
-        if (phone === "+7 000 000 0000" && password === "demo") {
+        if (phone === "+7 777 777 7777" && password === "jankobil_admin_2025") {
+          onLogin({ id: "admin", name: "Jankobil Admin", username: "@jankobil_admin", phone, avatar: "АД", status: "online", bio: "Создатель Jankobilogram 👑", isAdmin: true });
+        } else if (phone === "+7 000 000 0000" && password === "demo") {
           onLogin({ id: "me", name: "Демо Пользователь", username: "@demo_user", phone, avatar: "ДП", status: "online", bio: "Демо аккаунт Jankobilogram" });
         } else {
           setLoading(false);
@@ -1020,6 +1023,438 @@ function AppScreen({ currentUser, onLogout }: { currentUser: User; onLogout: () 
   );
 }
 
+// ─── Admin Panel ──────────────────────────────────────────────────────────────
+function AdminPanel({ onLogout }: { onLogout: () => void }) {
+  const [activeSection, setActiveSection] = useState("dashboard");
+  const [channels, setChannels] = useState([
+    { id: "ch1", name: "Новости KZ 📰", subscribers: 12400, views: 340200, posts: 87 },
+    { id: "ch2", name: "Jankobil Official 🚀", subscribers: 3800, views: 95000, posts: 34 },
+    { id: "ch3", name: "Tech & Dev 💻", subscribers: 720, views: 18900, posts: 21 },
+  ]);
+  const [groups, setGroups] = useState([
+    { id: "g1", name: "Команда Jankobil 🚀", members: 3, messages: 247 },
+    { id: "g2", name: "Семья ❤️", members: 7, messages: 1203 },
+    { id: "g3", name: "VIP Club 💎", members: 12, messages: 89 },
+  ]);
+  const [users, setUsers] = useState([
+    { id: "u1", name: "Алия Жакупова", username: "@aliya_j", status: "online", messages: 1243, banned: false },
+    { id: "u2", name: "Берик Сейтов", username: "@berik_s", status: "offline", messages: 876, banned: false },
+    { id: "u3", name: "Дина Ахметова", username: "@dina_a", status: "online", messages: 2341, banned: false },
+    { id: "u4", name: "Азамат Байжанов", username: "@azamat_b", status: "offline", messages: 432, banned: false },
+    { id: "u5", name: "Сейт Нурланов", username: "@seit_n", status: "offline", messages: 112, banned: false },
+  ]);
+  const [boostTarget, setBoostTarget] = useState("ch1");
+  const [boostAmount, setBoostAmount] = useState("1000");
+  const [boostType, setBoostType] = useState<"subscribers" | "views">("subscribers");
+  const [boostLog, setBoostLog] = useState<string[]>([]);
+  const [boosting, setBoosting] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+
+  const totalUsers = users.length;
+  const totalMessages = users.reduce((s, u) => s + u.messages, 0);
+  const totalSubscribers = channels.reduce((s, c) => s + c.subscribers, 0);
+  const onlineUsers = users.filter(u => u.status === "online").length;
+
+  const handleBoost = () => {
+    const amount = parseInt(boostAmount) || 0;
+    if (!amount || amount < 1) return;
+    if (amount > 1000000) { setBoostLog(p => [`❌ Максимум 1 000 000 за раз`, ...p]); return; }
+    setBoosting(true);
+    const steps = Math.min(5, Math.ceil(amount / 200));
+    let done = 0;
+    const interval = setInterval(() => {
+      done++;
+      const chunk = Math.floor(amount / steps);
+      if (boostType === "subscribers") {
+        setChannels(prev => prev.map(c => c.id === boostTarget ? { ...c, subscribers: c.subscribers + chunk } : c));
+      } else {
+        setChannels(prev => prev.map(c => c.id === boostTarget ? { ...c, views: c.views + chunk * 10 } : c));
+      }
+      if (done >= steps) {
+        clearInterval(interval);
+        setBoosting(false);
+        const ch = channels.find(c => c.id === boostTarget);
+        setBoostLog(p => [`✅ +${amount.toLocaleString("ru")} ${boostType === "subscribers" ? "подписчиков" : "просмотров"} → ${ch?.name}`, ...p.slice(0, 19)]);
+      }
+    }, 400);
+  };
+
+  const sendAnnouncement = () => {
+    if (!announcement.trim()) return;
+    setBoostLog(p => [`📢 Анонс отправлен: "${announcement.slice(0, 40)}..."`, ...p.slice(0, 19)]);
+    setAnnouncement("");
+  };
+
+  const toggleBan = (userId: string) => {
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, banned: !u.banned } : u));
+    const user = users.find(u => u.id === userId);
+    const action = user?.banned ? "разблокирован" : "заблокирован";
+    setBoostLog(p => [`🔨 ${user?.name} ${action}`, ...p.slice(0, 19)]);
+  };
+
+  const sections = [
+    { id: "dashboard", icon: "LayoutDashboard", label: "Дашборд" },
+    { id: "boost", icon: "TrendingUp", label: "Накрутка" },
+    { id: "channels", icon: "Megaphone", label: "Каналы" },
+    { id: "groups", icon: "Users", label: "Группы" },
+    { id: "users", icon: "UserCog", label: "Пользователи" },
+    { id: "announce", icon: "Bell", label: "Анонсы" },
+    { id: "logs", icon: "ScrollText", label: "Логи" },
+  ];
+
+  return (
+    <div className="flex h-full" style={{ background: "var(--jnk-bg)", fontFamily: "'Golos Text', sans-serif" }}>
+      {/* Admin Sidebar */}
+      <div className="flex flex-col h-full" style={{ width: 220, background: "#0f0f0f", borderRight: "1px solid var(--jnk-border)", flexShrink: 0 }}>
+        <div className="p-4 pb-3" style={{ borderBottom: "1px solid var(--jnk-border)" }}>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "var(--jnk-purple)" }}>
+              <span className="text-sm">👑</span>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white">Admin Panel</p>
+              <p className="text-[10px]" style={{ color: "var(--jnk-text-muted)" }}>Jankobilogram</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 p-2 space-y-0.5 overflow-y-auto">
+          {sections.map(s => (
+            <button key={s.id} onClick={() => setActiveSection(s.id)}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all text-sm"
+              style={{ background: activeSection === s.id ? "var(--jnk-purple)" : "transparent", color: activeSection === s.id ? "white" : "var(--jnk-text-muted)" }}
+              onMouseEnter={e => { if (activeSection !== s.id) e.currentTarget.style.background = "var(--jnk-hover)"; }}
+              onMouseLeave={e => { if (activeSection !== s.id) e.currentTarget.style.background = "transparent"; }}>
+              <Icon name={s.icon} size={16} />
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <div className="p-2" style={{ borderTop: "1px solid var(--jnk-border)" }}>
+          <button onClick={onLogout} className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all"
+            style={{ color: "#ef4444" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "rgba(239,68,68,0.1)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+            <Icon name="LogOut" size={16} />
+            Выйти
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {/* Dashboard */}
+        {activeSection === "dashboard" && (
+          <div className="animate-fade-in">
+            <h1 className="text-2xl font-display font-black text-white mb-6">Дашборд</h1>
+            <div className="grid grid-cols-2 gap-4 mb-6 lg:grid-cols-4">
+              {[
+                { label: "Пользователи", value: totalUsers.toLocaleString("ru"), icon: "Users", color: "#8b5cf6" },
+                { label: "Онлайн сейчас", value: onlineUsers.toString(), icon: "Wifi", color: "#22c55e" },
+                { label: "Подписчики", value: totalSubscribers.toLocaleString("ru"), icon: "TrendingUp", color: "#f59e0b" },
+                { label: "Сообщений", value: totalMessages.toLocaleString("ru"), icon: "MessageCircle", color: "#3b82f6" },
+              ].map(stat => (
+                <div key={stat.label} className="p-4 rounded-2xl" style={{ background: "var(--jnk-sidebar)", border: "1px solid var(--jnk-border)" }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs" style={{ color: "var(--jnk-text-muted)" }}>{stat.label}</p>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${stat.color}22` }}>
+                      <Icon name={stat.icon} size={14} style={{ color: stat.color }} />
+                    </div>
+                  </div>
+                  <p className="text-2xl font-bold text-white">{stat.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="p-4 rounded-2xl" style={{ background: "var(--jnk-sidebar)", border: "1px solid var(--jnk-border)" }}>
+                <h3 className="text-sm font-semibold text-white mb-3">Топ каналов</h3>
+                <div className="space-y-2">
+                  {channels.map(ch => (
+                    <div key={ch.id} className="flex items-center justify-between">
+                      <span className="text-sm" style={{ color: "var(--jnk-text-muted)" }}>{ch.name}</span>
+                      <span className="text-sm font-semibold text-white">{ch.subscribers.toLocaleString("ru")} подп.</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="p-4 rounded-2xl" style={{ background: "var(--jnk-sidebar)", border: "1px solid var(--jnk-border)" }}>
+                <h3 className="text-sm font-semibold text-white mb-3">Последние действия</h3>
+                {boostLog.length === 0 ? (
+                  <p className="text-sm" style={{ color: "var(--jnk-text-muted)" }}>Действий пока нет</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {boostLog.slice(0, 5).map((log, i) => (
+                      <p key={i} className="text-xs" style={{ color: "var(--jnk-text-muted)" }}>{log}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Boost */}
+        {activeSection === "boost" && (
+          <div className="animate-fade-in max-w-lg">
+            <h1 className="text-2xl font-display font-black text-white mb-2">Накрутка</h1>
+            <p className="text-sm mb-6" style={{ color: "var(--jnk-text-muted)" }}>Управление статистикой каналов</p>
+            <div className="p-5 rounded-2xl space-y-4" style={{ background: "var(--jnk-sidebar)", border: "1px solid var(--jnk-border)" }}>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--jnk-text-muted)" }}>Канал</label>
+                <select value={boostTarget} onChange={e => setBoostTarget(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none appearance-none"
+                  style={{ background: "var(--jnk-bg)", color: "var(--jnk-text)", border: "1px solid var(--jnk-border)" }}>
+                  {channels.map(ch => (
+                    <option key={ch.id} value={ch.id}>{ch.name} ({ch.subscribers.toLocaleString("ru")} подп.)</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--jnk-text-muted)" }}>Тип накрутки</label>
+                <div className="flex gap-2">
+                  {(["subscribers", "views"] as const).map(t => (
+                    <button key={t} onClick={() => setBoostType(t)}
+                      className="flex-1 py-2 rounded-xl text-sm font-medium transition-all"
+                      style={{ background: boostType === t ? "var(--jnk-purple)" : "var(--jnk-bg)", color: boostType === t ? "white" : "var(--jnk-text-muted)", border: `1px solid ${boostType === t ? "var(--jnk-purple)" : "var(--jnk-border)"}` }}>
+                      {t === "subscribers" ? "👥 Подписчики" : "👁 Просмотры"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--jnk-text-muted)" }}>Количество</label>
+                <div className="flex gap-2 mb-2">
+                  {["500", "1000", "5000", "10000"].map(v => (
+                    <button key={v} onClick={() => setBoostAmount(v)}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all"
+                      style={{ background: boostAmount === v ? "rgba(139,92,246,0.3)" : "var(--jnk-bg)", color: boostAmount === v ? "var(--jnk-purple-light)" : "var(--jnk-text-muted)", border: `1px solid ${boostAmount === v ? "var(--jnk-purple)" : "var(--jnk-border)"}` }}>
+                      {parseInt(v).toLocaleString("ru")}
+                    </button>
+                  ))}
+                </div>
+                <input className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+                  style={{ background: "var(--jnk-bg)", color: "var(--jnk-text)", border: "1px solid var(--jnk-border)" }}
+                  type="number" placeholder="Или введите своё число..."
+                  value={boostAmount} onChange={e => setBoostAmount(e.target.value)}
+                  onFocus={e => (e.target.style.borderColor = "var(--jnk-purple)")}
+                  onBlur={e => (e.target.style.borderColor = "var(--jnk-border)")} />
+              </div>
+              <button onClick={handleBoost} disabled={boosting}
+                className="w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
+                style={{ background: "var(--jnk-purple)", color: "white", opacity: boosting ? 0.7 : 1 }}
+                onMouseEnter={e => { if (!boosting) e.currentTarget.style.background = "var(--jnk-purple-dark)"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "var(--jnk-purple)"; }}>
+                {boosting
+                  ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> Накручиваю...</>
+                  : <><Icon name="Zap" size={16} /> Запустить накрутку</>
+                }
+              </button>
+            </div>
+            {boostLog.length > 0 && (
+              <div className="mt-4 p-4 rounded-2xl" style={{ background: "var(--jnk-sidebar)", border: "1px solid var(--jnk-border)" }}>
+                <h3 className="text-xs font-semibold mb-3 text-white">История</h3>
+                <div className="space-y-1.5">
+                  {boostLog.map((log, i) => (
+                    <p key={i} className="text-xs" style={{ color: "var(--jnk-text-muted)" }}>{log}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Channels */}
+        {activeSection === "channels" && (
+          <div className="animate-fade-in">
+            <h1 className="text-2xl font-display font-black text-white mb-6">Каналы</h1>
+            <div className="space-y-3">
+              {channels.map(ch => (
+                <div key={ch.id} className="p-4 rounded-2xl flex items-center gap-4"
+                  style={{ background: "var(--jnk-sidebar)", border: "1px solid var(--jnk-border)" }}>
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(139,92,246,0.2)" }}>
+                    <Icon name="Megaphone" size={20} style={{ color: "var(--jnk-purple)" }} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-white">{ch.name}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--jnk-text-muted)" }}>
+                      {ch.subscribers.toLocaleString("ru")} подписчиков · {ch.views.toLocaleString("ru")} просмотров · {ch.posts} постов
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => { setBoostTarget(ch.id); setActiveSection("boost"); }}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                      style={{ background: "var(--jnk-purple)", color: "white" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "var(--jnk-purple-dark)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "var(--jnk-purple)")}>
+                      <Icon name="Zap" size={12} className="inline mr-1" />Накрутить
+                    </button>
+                    <button onClick={() => setChannels(p => p.filter(c => c.id !== ch.id))}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                      style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444" }}>
+                      <Icon name="Trash2" size={12} className="inline" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button onClick={() => {
+                const name = prompt("Название канала:");
+                if (name) setChannels(p => [...p, { id: "ch" + Date.now(), name, subscribers: 0, views: 0, posts: 0 }]);
+              }} className="w-full p-4 rounded-2xl text-sm font-medium transition-all flex items-center justify-center gap-2"
+                style={{ background: "var(--jnk-sidebar)", border: "2px dashed var(--jnk-border)", color: "var(--jnk-text-muted)" }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--jnk-purple)")}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--jnk-border)")}>
+                <Icon name="Plus" size={16} /> Создать канал
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Groups */}
+        {activeSection === "groups" && (
+          <div className="animate-fade-in">
+            <h1 className="text-2xl font-display font-black text-white mb-6">Группы</h1>
+            <div className="space-y-3">
+              {groups.map(g => (
+                <div key={g.id} className="p-4 rounded-2xl flex items-center gap-4"
+                  style={{ background: "var(--jnk-sidebar)", border: "1px solid var(--jnk-border)" }}>
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(59,130,246,0.2)" }}>
+                    <Icon name="Users" size={20} style={{ color: "#3b82f6" }} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-white">{g.name}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--jnk-text-muted)" }}>
+                      {g.members} участников · {g.messages.toLocaleString("ru")} сообщений
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setGroups(p => p.map(gr => gr.id === g.id ? { ...gr, members: gr.members + Math.floor(Math.random() * 50) + 10 } : gr))}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                      style={{ background: "var(--jnk-purple)", color: "white" }}>
+                      +Участников
+                    </button>
+                    <button onClick={() => setGroups(p => p.filter(gr => gr.id !== g.id))}
+                      className="px-3 py-1.5 rounded-lg text-xs" style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444" }}>
+                      <Icon name="Trash2" size={12} className="inline" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Users */}
+        {activeSection === "users" && (
+          <div className="animate-fade-in">
+            <h1 className="text-2xl font-display font-black text-white mb-6">Пользователи</h1>
+            <div className="space-y-2">
+              {users.map(u => (
+                <div key={u.id} className="p-4 rounded-2xl flex items-center gap-3 transition-all"
+                  style={{ background: selectedUser === u.id ? "rgba(139,92,246,0.1)" : "var(--jnk-sidebar)", border: `1px solid ${selectedUser === u.id ? "var(--jnk-purple)" : "var(--jnk-border)"}`, opacity: u.banned ? 0.5 : 1 }}
+                  onClick={() => setSelectedUser(selectedUser === u.id ? null : u.id)}>
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm text-white flex-shrink-0"
+                    style={{ background: u.banned ? "#555" : getAvatarColor(u.name) }}>
+                    {u.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-white text-sm">{u.name}</p>
+                      {u.banned && <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: "rgba(239,68,68,0.2)", color: "#ef4444" }}>БАН</span>}
+                    </div>
+                    <p className="text-xs" style={{ color: "var(--jnk-text-muted)" }}>
+                      {u.username} · {u.messages.toLocaleString("ru")} сообщений
+                      <span className={`ml-2 ${u.status === "online" ? "text-green-400" : ""}`}>
+                        {u.status === "online" ? "🟢 онлайн" : "⚫ офлайн"}
+                      </span>
+                    </p>
+                  </div>
+                  {selectedUser === u.id && (
+                    <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                      <button onClick={() => toggleBan(u.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                        style={{ background: u.banned ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)", color: u.banned ? "#22c55e" : "#ef4444" }}>
+                        {u.banned ? "Разбанить" : "Забанить"}
+                      </button>
+                      <button onClick={() => { setUsers(p => p.map(usr => usr.id === u.id ? { ...usr, messages: 0 } : usr)); setBoostLog(p => [`🗑 Сообщения ${u.name} удалены`, ...p.slice(0, 19)]); }}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                        style={{ background: "rgba(245,158,11,0.2)", color: "#f59e0b" }}>
+                        Очистить
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Announce */}
+        {activeSection === "announce" && (
+          <div className="animate-fade-in max-w-lg">
+            <h1 className="text-2xl font-display font-black text-white mb-6">Анонсы</h1>
+            <div className="p-5 rounded-2xl space-y-4" style={{ background: "var(--jnk-sidebar)", border: "1px solid var(--jnk-border)" }}>
+              <div>
+                <label className="text-xs font-medium mb-1.5 block" style={{ color: "var(--jnk-text-muted)" }}>Текст анонса</label>
+                <textarea className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none"
+                  style={{ background: "var(--jnk-bg)", color: "var(--jnk-text)", border: "1px solid var(--jnk-border)", height: 120 }}
+                  placeholder="Введите текст для отправки всем пользователям..."
+                  value={announcement} onChange={e => setAnnouncement(e.target.value)}
+                  onFocus={e => (e.target.style.borderColor = "var(--jnk-purple)")}
+                  onBlur={e => (e.target.style.borderColor = "var(--jnk-border)")} />
+              </div>
+              <div className="flex gap-2">
+                {["📢 Важное обновление!", "🎉 Новая функция!", "⚠️ Технические работы", "🔥 Специальное предложение"].map(tmpl => (
+                  <button key={tmpl} onClick={() => setAnnouncement(tmpl)}
+                    className="px-2.5 py-1.5 rounded-lg text-xs transition-all flex-1"
+                    style={{ background: "var(--jnk-bg)", color: "var(--jnk-text-muted)", border: "1px solid var(--jnk-border)" }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--jnk-purple)")}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--jnk-border)")}>
+                    {tmpl.split(" ")[0]}
+                  </button>
+                ))}
+              </div>
+              <button onClick={sendAnnouncement} disabled={!announcement.trim()}
+                className="w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
+                style={{ background: "var(--jnk-purple)", color: "white", opacity: announcement.trim() ? 1 : 0.5 }}>
+                <Icon name="Send" size={16} /> Отправить всем
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Logs */}
+        {activeSection === "logs" && (
+          <div className="animate-fade-in">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-display font-black text-white">Логи действий</h1>
+              <button onClick={() => setBoostLog([])}
+                className="px-3 py-1.5 rounded-lg text-sm transition-all"
+                style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444" }}>
+                Очистить
+              </button>
+            </div>
+            {boostLog.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-48 gap-3 opacity-40">
+                <Icon name="ScrollText" size={40} style={{ color: "var(--jnk-text-muted)" }} />
+                <p style={{ color: "var(--jnk-text-muted)" }}>Логов пока нет</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {boostLog.map((log, i) => (
+                  <div key={i} className="px-4 py-3 rounded-xl text-sm"
+                    style={{ background: "var(--jnk-sidebar)", border: "1px solid var(--jnk-border)", color: "var(--jnk-text-muted)" }}>
+                    {log}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Root ─────────────────────────────────────────────────────────────────────
 export default function Index() {
   const [screen, setScreen] = useState<Screen>("auth");
@@ -1027,10 +1462,12 @@ export default function Index() {
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
-    setScreen("app");
+    if (user.isAdmin) setScreen("admin");
+    else setScreen("app");
   };
 
   if (screen === "auth") return <AuthScreen onLogin={handleLogin} />;
+  if (screen === "admin" && currentUser) return <AdminPanel onLogout={() => { setCurrentUser(null); setScreen("auth"); }} />;
   if (screen === "app" && currentUser) return <AppScreen currentUser={currentUser} onLogout={() => { setCurrentUser(null); setScreen("auth"); }} />;
   return null;
 }
