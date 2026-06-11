@@ -48,46 +48,84 @@ interface Chat {
   subscribers?: number;
 }
 
-// ─── Fake Data ────────────────────────────────────────────────────────────────
-const DEMO_CHATS: Chat[] = [
-  { id: "1", type: "personal", name: "Алия Жакупова", avatar: "АЖ", lastMessage: "Окей, до встречи!", lastTime: "12:34", unread: 3, online: true, pinned: true },
-  { id: "2", type: "personal", name: "Берик Сейтов", avatar: "БС", lastMessage: "Ты видел этот фильм?", lastTime: "11:20", unread: 0, online: false },
-  { id: "3", type: "group", name: "Команда Jankobil 🚀", avatar: "КД", lastMessage: "Азамат: Задача выполнена!", lastTime: "10:05", unread: 12, members: ["Азамат", "Дина", "Сейт"] },
-  { id: "4", type: "channel", name: "Новости KZ 📰", avatar: "НК", lastMessage: "Срочно: новые правила...", lastTime: "09:45", unread: 0, subscribers: 12400 },
-  { id: "5", type: "personal", name: "Дина Ахметова", avatar: "ДА", lastMessage: "Фото пришло 📸", lastTime: "вчера", unread: 1, online: true },
-  { id: "6", type: "bot", name: "🤖 Jankobil Assistant", avatar: "ЖА", lastMessage: "Чем могу помочь?", lastTime: "вчера", unread: 0 },
-  { id: "7", type: "group", name: "Семья ❤️", avatar: "СЕ", lastMessage: "Мама: Приходите в воскресенье", lastTime: "пн", unread: 5, pinned: true },
-  { id: "8", type: "personal", name: "Сейт Нурланов", avatar: "СН", lastMessage: "👍", lastTime: "вс", unread: 0, online: false },
+// ─── Test Accounts (общий пароль: test1234) ────────────────────────────────────
+const TEST_ACCOUNTS: (User & { password: string })[] = [
+  { id: "sashko",   name: "Sashko",   username: "@sashko",   phone: "+7 100 000 0001", avatar: "SA", password: "test1234", status: "online",  bio: "Привет! Я Sashko 👋" },
+  { id: "igor",     name: "Igor",     username: "@igor",     phone: "+7 100 000 0002", avatar: "IG", password: "test1234", status: "online",  bio: "Igor is here 🔥" },
+  { id: "diniz",    name: "Diniz",    username: "@diniz",    phone: "+7 100 000 0003", avatar: "DI", password: "test1234", status: "offline", bio: "Diniz | Gamer 🎮" },
+  { id: "nika",     name: "Nika",     username: "@nika",     phone: "+7 100 000 0004", avatar: "NK", password: "test1234", status: "online",  bio: "Nika ✨ Designer" },
+  { id: "neis0906", name: "Neis0906", username: "@neis0906", phone: "+7 100 000 0005", avatar: "NE", password: "test1234", status: "offline", bio: "Neis0906 | since 2024" },
+  { id: "maxim",    name: "Maxim",    username: "@maxim",    phone: "+7 100 000 0006", avatar: "MX", password: "test1234", status: "online",  bio: "Maxim | Разработчик 💻" },
+  { id: "lena",     name: "Lena",     username: "@lena",     phone: "+7 100 000 0007", avatar: "LE", password: "test1234", status: "offline", bio: "Lena | Музыка & Кофе ☕" },
 ];
 
-const DEMO_MESSAGES: Record<string, Message[]> = {
-  "1": [
-    { id: "m1", from: "them", text: "Привет! Как дела?", type: "text", time: "12:20", read: true },
-    { id: "m2", from: "me", text: "Отлично! Работаю над новым проектом 🚀", type: "text", time: "12:22", read: true },
-    { id: "m3", from: "them", text: "Это Jankobilogram? Слышала о нём!", type: "text", time: "12:25", read: true },
-    { id: "m4", from: "me", text: "Да! Уже можно отправлять голосовые и делать звонки 🎉", type: "text", time: "12:28", read: true },
-    { id: "m5", from: "them", text: "Wow, серьёзно? Покажи как!", type: "text", time: "12:30", read: true, reactions: ["🔥", "👍"] },
-    { id: "m6", from: "them", text: "Окей, до встречи!", type: "text", time: "12:34", read: true },
-  ],
-  "3": [
-    { id: "g1", from: "Азамат", text: "Всем привет! Новый спринт начинается сегодня 💪", type: "text", time: "09:00", read: true },
-    { id: "g2", from: "Дина", text: "Готова! Задачи уже расставила в доске", type: "text", time: "09:15", read: true },
-    { id: "g3", from: "me", text: "Отлично, начинаем в 10:00 по плану", type: "text", time: "09:30", read: true },
-    { id: "g4", from: "Азамат", text: "Задача выполнена!", type: "text", time: "10:05", read: true },
-  ],
-  "6": [
-    { id: "b1", from: "them", text: "Привет! Я Jankobil Assistant 🤖\n\nЯ могу помочь с:\n• Поиском информации\n• Переводом текста\n• Ответами на вопросы", type: "text", time: "09:00", read: true },
-    { id: "b2", from: "them", text: "Чем могу помочь?", type: "text", time: "09:00", read: true },
-  ],
-};
+// ─── Shared localStorage messages (между аккаунтами) ─────────────────────────
+const LS_MSGS_KEY = "jnk_messages_v2";
+const LS_USER_KEY = "jnk_current_user";
 
-const CONTACTS: User[] = [
-  { id: "c1", name: "Алия Жакупова", username: "@aliya_j", phone: "+7 701 234 5678", avatar: "АЖ", status: "online", bio: "Дизайнер | Алматы ☀️" },
-  { id: "c2", name: "Берик Сейтов", username: "@berik_s", phone: "+7 702 345 6789", avatar: "БС", status: "offline", lastSeen: "сегодня в 11:20" },
-  { id: "c3", name: "Дина Ахметова", username: "@dina_a", phone: "+7 703 456 7890", avatar: "ДА", status: "online", bio: "Путешествия и кофе ☕" },
-  { id: "c4", name: "Азамат Байжанов", username: "@azamat_b", phone: "+7 707 567 8901", avatar: "АБ", status: "offline", lastSeen: "вчера" },
-  { id: "c5", name: "Сейт Нурланов", username: "@seit_n", phone: "+7 708 678 9012", avatar: "СН", status: "offline", lastSeen: "3 дня назад" },
+function loadSharedMessages(): Record<string, Message[]> {
+  try {
+    const raw = localStorage.getItem(LS_MSGS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { console.warn(e); return {}; }
+}
+
+function saveSharedMessages(msgs: Record<string, Message[]>) {
+  try { localStorage.setItem(LS_MSGS_KEY, JSON.stringify(msgs)); } catch (e) { console.warn(e); }
+}
+
+// chat id между двумя юзерами — всегда одинаковый (сортируем id)
+function chatId(a: string, b: string) {
+  return [a, b].sort().join("__");
+}
+
+// ─── Чаты для конкретного пользователя (все тестовые аккаунты кроме себя) ─────
+function buildChatsForUser(userId: string): Chat[] {
+  const others = TEST_ACCOUNTS.filter(u => u.id !== userId);
+  const sharedMsgs = loadSharedMessages();
+  return others.map(u => {
+    const cid = chatId(userId, u.id);
+    const msgs = sharedMsgs[cid] || [];
+    const last = msgs[msgs.length - 1];
+    return {
+      id: cid,
+      type: "personal" as ChatType,
+      name: u.name,
+      avatar: u.avatar,
+      lastMessage: last ? last.text : "Напишите первым!",
+      lastTime: last ? last.time : "",
+      unread: 0,
+      online: u.status === "online",
+    };
+  }).concat([
+    { id: "group_all", type: "group", name: "Jankobilogram 🚀", avatar: "ЖА", lastMessage: "Добро пожаловать!", lastTime: "сейчас", unread: 0, members: TEST_ACCOUNTS.map(u => u.name), pinned: true },
+    { id: "channel_news", type: "channel", name: "Новости KZ 📰", avatar: "НК", lastMessage: "Последние новости...", lastTime: "09:45", unread: 0, subscribers: 12400 },
+    { id: "bot_assist", type: "bot", name: "🤖 Jankobil Assistant", avatar: "ЖА", lastMessage: "Чем могу помочь?", lastTime: "вчера", unread: 0 },
+  ]);
+}
+
+const INITIAL_GROUP_MSGS: Message[] = [
+  { id: "g_init1", from: "system", text: "Добро пожаловать в Jankobilogram! 🚀 Это общий чат всех пользователей.", type: "system", time: "09:00", read: true },
+  { id: "g_init2", from: "sashko", text: "Всем привет! 👋", type: "text", time: "09:01", read: true },
+  { id: "g_init3", from: "nika", text: "Привет! Наконец-то запустили 🎉", type: "text", time: "09:02", read: true },
 ];
+
+const BOT_MSGS: Message[] = [
+  { id: "b1", from: "bot", text: "Привет! Я Jankobil Assistant 🤖\n\nМогу помочь с:\n• Ответами на вопросы\n• Поиском информации\n• Переводом текста", type: "text", time: "09:00", read: true },
+];
+
+// Инициализируем групповые сообщения если их нет
+function initGroupMessages() {
+  const shared = loadSharedMessages();
+  if (!shared["group_all"]) {
+    shared["group_all"] = INITIAL_GROUP_MSGS;
+    saveSharedMessages(shared);
+  }
+  if (!shared["bot_assist"]) {
+    shared["bot_assist"] = BOT_MSGS;
+    saveSharedMessages(shared);
+  }
+}
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
@@ -195,15 +233,31 @@ function AuthScreen({ onLogin }: { onLogin: (user: User) => void }) {
       if (!phone.trim() || !password.trim()) { setError("Введите телефон и пароль"); return; }
       setLoading(true);
       setTimeout(() => {
+        // Admin
         if (phone === "+7 777 777 7777" && password === "jankobil_admin_2025") {
           onLogin({ id: "admin", name: "Jankobil Admin", username: "@jankobil_admin", phone, avatar: "АД", status: "online", bio: "Создатель Jankobilogram 👑", isAdmin: true });
-        } else if (phone === "+7 000 000 0000" && password === "demo") {
-          onLogin({ id: "me", name: "Демо Пользователь", username: "@demo_user", phone, avatar: "ДП", status: "online", bio: "Демо аккаунт Jankobilogram" });
-        } else {
-          setLoading(false);
-          setError("Неверный телефон или пароль");
+          return;
         }
-      }, 800);
+        // Тестовые аккаунты — по username или телефону
+        const trimPhone = phone.trim().replace(/\s/g, "");
+        const trimPwd = password.trim();
+        const found = TEST_ACCOUNTS.find(a =>
+          (a.phone.replace(/\s/g, "") === trimPhone || a.username === phone.trim() || a.username === "@" + phone.trim()) &&
+          a.password === trimPwd
+        );
+        if (found) {
+          const { password: _, ...userWithoutPwd } = found;
+          onLogin(userWithoutPwd);
+          return;
+        }
+        // Demo
+        if (phone === "+7 000 000 0000" && password === "demo") {
+          onLogin({ id: "me", name: "Демо Пользователь", username: "@demo_user", phone, avatar: "ДП", status: "online", bio: "Демо аккаунт Jankobilogram" });
+          return;
+        }
+        setLoading(false);
+        setError("Неверный телефон/логин или пароль");
+      }, 600);
     }
   };
 
@@ -241,10 +295,22 @@ function AuthScreen({ onLogin }: { onLogin: (user: User) => void }) {
 
           {tab === "login" && (
             <div className="space-y-3">
-              <Input icon="Phone" placeholder="+7 000 000 0000" value={phone} onChange={setPhone} type="tel" />
+              <Input icon="Phone" placeholder="Телефон, @username или логин" value={phone} onChange={setPhone} type="text" />
               <Input icon="Lock" placeholder="Пароль" value={password} onChange={setPassword} type="password" />
-              <p className="text-xs text-center" style={{ color: "var(--jnk-text-muted)" }}>Демо: +7 000 000 0000 / demo</p>
               <PurpleBtn loading={loading} onClick={handleSubmit}>Войти</PurpleBtn>
+              <div className="pt-2">
+                <p className="text-xs text-center mb-2" style={{ color: "var(--jnk-text-muted)" }}>Быстрый вход — тестовые аккаунты (пароль: test1234)</p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {TEST_ACCOUNTS.map(acc => (
+                    <button key={acc.id}
+                      onClick={() => { setPhone(acc.phone); setPassword("test1234"); }}
+                      className="py-1.5 rounded-lg text-xs font-medium transition-all text-center"
+                      style={{ background: phone === acc.phone ? "rgba(139,92,246,0.3)" : "var(--jnk-bg)", color: phone === acc.phone ? "var(--jnk-purple-light)" : "var(--jnk-text-muted)", border: `1px solid ${phone === acc.phone ? "var(--jnk-purple)" : "var(--jnk-border)"}` }}>
+                      {acc.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -277,8 +343,11 @@ function AuthScreen({ onLogin }: { onLogin: (user: User) => void }) {
 // ─── Main App Screen ──────────────────────────────────────────────────────────
 function AppScreen({ currentUser, onLogout }: { currentUser: User; onLogout: () => void }) {
   const [tab, setTab] = useState<AppTab>("chats");
-  const [chats, setChats] = useState<Chat[]>(DEMO_CHATS);
-  const [messages, setMessages] = useState<Record<string, Message[]>>(DEMO_MESSAGES);
+  const [chats, setChats] = useState<Chat[]>(() => buildChatsForUser(currentUser.id));
+  const [messages, setMessages] = useState<Record<string, Message[]>>(() => {
+    initGroupMessages();
+    return loadSharedMessages();
+  });
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
   const [input, setInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -304,11 +373,38 @@ function AppScreen({ currentUser, onLogout }: { currentUser: User; onLogout: () 
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeChat, messages]);
 
+  // Polling: подхватываем сообщения от других пользователей каждые 2 секунды
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const fresh = loadSharedMessages();
+      setMessages(prev => {
+        // Проверяем есть ли новые сообщения
+        let changed = false;
+        for (const key of Object.keys(fresh)) {
+          if (!prev[key] || prev[key].length !== fresh[key].length) { changed = true; break; }
+        }
+        if (changed) {
+          // Обновляем lastMessage в чатах
+          setChats(prevChats => prevChats.map(c => {
+            const msgs = fresh[c.id];
+            if (!msgs || msgs.length === 0) return c;
+            const last = msgs[msgs.length - 1];
+            const isFromMe = last.from === currentUser.id;
+            return { ...c, lastMessage: last.text, lastTime: last.time, unread: isFromMe ? c.unread : (c.unread + (msgs.length - (prev[c.id]?.length || 0))) };
+          }));
+          return fresh;
+        }
+        return prev;
+      });
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [currentUser.id]);
+
   const sendMessage = useCallback((text: string, type: MessageType = "text", extra?: Partial<Message>) => {
     if (!activeChat) return;
     const msg: Message = {
       id: "msg_" + Date.now(),
-      from: "me",
+      from: currentUser.id,
       text,
       type,
       time: new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
@@ -316,7 +412,11 @@ function AppScreen({ currentUser, onLogout }: { currentUser: User; onLogout: () 
       replyTo: replyTo?.id,
       ...extra,
     };
-    setMessages(prev => ({ ...prev, [activeChat.id]: [...(prev[activeChat.id] || []), msg] }));
+    setMessages(prev => {
+      const updated = { ...prev, [activeChat.id]: [...(prev[activeChat.id] || []), msg] };
+      saveSharedMessages(updated);
+      return updated;
+    });
     setChats(prev => prev.map(c => c.id === activeChat.id ? { ...c, lastMessage: type === "voice" ? "🎤 Голосовое" : text, lastTime: msg.time } : c));
     setReplyTo(null);
     setInput("");
@@ -326,18 +426,22 @@ function AppScreen({ currentUser, onLogout }: { currentUser: User; onLogout: () 
     if (activeChat.type === "bot") {
       setTimeout(() => {
         const replies = ["Понял! Обрабатываю запрос...", "Отличный вопрос! Вот что я нашёл 🔍", "Готово! Что-то ещё?", "Конечно, помогу вам с этим 🤖", "Обработка завершена ✅"];
-        const reply: Message = {
+        const botReply: Message = {
           id: "bot_" + Date.now(),
-          from: "them",
+          from: "bot",
           text: replies[Math.floor(Math.random() * replies.length)],
           type: "text",
           time: new Date().toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" }),
           read: true,
         };
-        setMessages(prev => ({ ...prev, [activeChat.id]: [...(prev[activeChat.id] || []), reply] }));
+        setMessages(prev => {
+          const updated = { ...prev, [activeChat.id]: [...(prev[activeChat.id] || []), botReply] };
+          saveSharedMessages(updated);
+          return updated;
+        });
       }, 1000);
     }
-  }, [activeChat, replyTo]);
+  }, [activeChat, replyTo, currentUser.id]);
 
   const startRecording = () => {
     setRecording(true);
@@ -514,20 +618,30 @@ function AppScreen({ currentUser, onLogout }: { currentUser: User; onLogout: () 
           </div>
         )}
         {activeMsgs.map((msg, i) => {
-          const isMe = msg.from === "me";
+          const isMe = msg.from === currentUser.id;
+          const isSystem = msg.type === "system";
+          const senderAccount = TEST_ACCOUNTS.find(a => a.id === msg.from);
+          const senderName = senderAccount ? senderAccount.name : msg.from === "bot" ? "Bot" : msg.from;
+          const senderAvatar = senderAccount ? senderAccount.avatar : activeChat.avatar;
           const prevMsg = activeMsgs[i - 1];
           const isFirst = !prevMsg || prevMsg.from !== msg.from;
+
+          if (isSystem) return (
+            <div key={msg.id} className="flex justify-center my-3">
+              <span className="px-3 py-1 rounded-full text-xs" style={{ background: "rgba(139,92,246,0.15)", color: "var(--jnk-text-muted)" }}>{msg.text}</span>
+            </div>
+          );
 
           return (
             <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} ${isFirst ? "mt-3" : "mt-0.5"} group animate-fade-in`}>
               {!isMe && (
                 <div className="w-8 mr-2 flex-shrink-0 flex items-end">
-                  {isFirst && <Avatar text={msg.from === "them" ? activeChat.avatar : msg.from.slice(0, 2)} size={28} />}
+                  {isFirst && <Avatar text={senderAvatar} size={28} />}
                 </div>
               )}
               <div style={{ maxWidth: "70%" }}>
-                {!isMe && isFirst && activeChat.type === "group" && (
-                  <p className="text-xs mb-1 ml-1" style={{ color: "var(--jnk-purple-light)" }}>{msg.from}</p>
+                {!isMe && isFirst && (activeChat.type === "group" || activeChat.type === "personal") && activeChat.type === "group" && (
+                  <p className="text-xs mb-1 ml-1" style={{ color: "var(--jnk-purple-light)" }}>{senderName}</p>
                 )}
                 {msg.replyTo && (
                   <div className="mb-1 px-2 py-1 rounded-lg text-xs opacity-70 inline-block" style={{ background: "rgba(139,92,246,0.2)", borderLeft: "3px solid var(--jnk-purple)" }}>
@@ -699,10 +813,11 @@ function AppScreen({ currentUser, onLogout }: { currentUser: User; onLogout: () 
   );
 
   // ── Contacts ──────────────────────────────────────────────────────────────────
+  const allContacts = TEST_ACCOUNTS.filter(u => u.id !== currentUser.id);
   const contactsPanel = (
     <div className="flex flex-col h-full flex-1" style={{ background: "var(--jnk-bg)" }}>
       <div className="p-4" style={{ borderBottom: "1px solid var(--jnk-border)" }}>
-        <h2 className="text-lg font-bold text-white mb-3">Контакты</h2>
+        <h2 className="text-lg font-bold text-white mb-3">Контакты ({allContacts.length})</h2>
         <div className="relative">
           <Icon name="Search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--jnk-text-muted)" }} />
           <input className="w-full pl-8 pr-3 py-2 rounded-xl text-sm outline-none"
@@ -711,36 +826,47 @@ function AppScreen({ currentUser, onLogout }: { currentUser: User; onLogout: () 
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">
-        {CONTACTS.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.username.includes(searchQuery)).map(contact => (
-          <div key={contact.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-all jnk-chat-item"
-            onClick={() => {
-              const existing = chats.find(c => c.name === contact.name);
-              if (existing) { setActiveChat(existing); setTab("chats"); }
-              else {
-                const nc: Chat = { id: "nc_" + contact.id, type: "personal", name: contact.name, avatar: contact.avatar, lastMessage: "", lastTime: "", unread: 0, online: contact.status === "online" };
-                setChats(prev => [nc, ...prev]);
-                setActiveChat(nc);
-                setTab("chats");
-              }
-            }}>
-            <Avatar text={contact.avatar} size={50} online={contact.status === "online"} />
-            <div className="flex-1">
-              <p className="font-semibold text-white text-sm">{contact.name}</p>
-              <p className="text-xs" style={{ color: "var(--jnk-purple-light)" }}>{contact.username}</p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--jnk-text-muted)" }}>
-                {contact.bio || (contact.status === "online" ? "онлайн" : `был(а) ${contact.lastSeen}`)}
-              </p>
+        {allContacts.filter(c =>
+          c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.username.toLowerCase().includes(searchQuery.toLowerCase())
+        ).map(contact => {
+          const cid = chatId(currentUser.id, contact.id);
+          const existingChat = chats.find(c => c.id === cid);
+          return (
+            <div key={contact.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer transition-all jnk-chat-item"
+              onClick={() => {
+                if (existingChat) { setActiveChat(existingChat); setTab("chats"); }
+                else {
+                  const nc: Chat = { id: cid, type: "personal", name: contact.name, avatar: contact.avatar, lastMessage: "Напишите первым!", lastTime: "", unread: 0, online: contact.status === "online" };
+                  setChats(prev => [nc, ...prev]);
+                  setActiveChat(nc);
+                  setTab("chats");
+                }
+              }}>
+              <Avatar text={contact.avatar} size={50} online={contact.status === "online"} />
+              <div className="flex-1">
+                <p className="font-semibold text-white text-sm">{contact.name}</p>
+                <p className="text-xs" style={{ color: "var(--jnk-purple-light)" }}>{contact.username}</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--jnk-text-muted)" }}>
+                  {contact.bio || (contact.status === "online" ? "онлайн" : "был(а) недавно")}
+                </p>
+              </div>
+              <button className="p-2 rounded-xl" style={{ background: "var(--jnk-sidebar)" }}>
+                <Icon name="MessageCircle" size={16} style={{ color: "var(--jnk-purple)" }} />
+              </button>
             </div>
-            <button className="p-2 rounded-xl" style={{ background: "var(--jnk-sidebar)" }}>
-              <Icon name="MessageCircle" size={16} style={{ color: "var(--jnk-purple)" }} />
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 
   // ── Search ─────────────────────────────────────────────────────────────────
+  const allSearchItems = [
+    ...allContacts.map(u => ({ id: chatId(currentUser.id, u.id), name: u.name, avatar: u.avatar, sub: u.username, type: "personal" as ChatType, userId: u.id })),
+    ...chats.filter(c => c.type === "group" || c.type === "channel" || c.type === "bot").map(c => ({ id: c.id, name: c.name, avatar: c.avatar, sub: c.type === "channel" ? "Канал" : c.type === "bot" ? "Бот" : "Группа", type: c.type, userId: "" })),
+  ];
+
   const searchPanel = (
     <div className="flex flex-col h-full flex-1" style={{ background: "var(--jnk-bg)" }}>
       <div className="p-4" style={{ borderBottom: "1px solid var(--jnk-border)" }}>
@@ -754,22 +880,65 @@ function AppScreen({ currentUser, onLogout }: { currentUser: User; onLogout: () 
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         {searchQuery.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-3 opacity-40">
-            <Icon name="Search" size={48} style={{ color: "var(--jnk-text-muted)" }} />
-            <p className="text-sm" style={{ color: "var(--jnk-text-muted)" }}>Введите запрос для поиска</p>
+          <div>
+            <p className="text-xs font-medium mb-3" style={{ color: "var(--jnk-text-muted)" }}>Все пользователи</p>
+            <div className="space-y-1">
+              {allContacts.map(u => {
+                const cid = chatId(currentUser.id, u.id);
+                const existing = chats.find(c => c.id === cid);
+                return (
+                  <div key={u.id} onClick={() => {
+                    if (existing) { setActiveChat(existing); setTab("chats"); }
+                    else {
+                      const nc: Chat = { id: cid, type: "personal", name: u.name, avatar: u.avatar, lastMessage: "Напишите первым!", lastTime: "", unread: 0, online: u.status === "online" };
+                      setChats(prev => [nc, ...prev]);
+                      setActiveChat(nc);
+                      setTab("chats");
+                    }
+                    setSearchQuery("");
+                  }} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all jnk-chat-item">
+                    <Avatar text={u.avatar} size={44} online={u.status === "online"} />
+                    <div>
+                      <p className="font-semibold text-white text-sm">{u.name}</p>
+                      <p className="text-xs" style={{ color: "var(--jnk-text-muted)" }}>{u.username} · {u.bio}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ) : (
           <div className="space-y-1">
-            {[...chats].filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase())).map(item => (
-              <div key={item.id} onClick={() => { setActiveChat(item); setTab("chats"); }}
-                className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all jnk-chat-item">
-                <Avatar text={item.avatar} size={44} />
-                <div>
-                  <p className="font-semibold text-white text-sm">{item.name}</p>
-                  <p className="text-xs" style={{ color: "var(--jnk-text-muted)" }}>{item.lastMessage}</p>
+            {allSearchItems.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.sub.toLowerCase().includes(searchQuery.toLowerCase())).map(item => {
+              const existing = chats.find(c => c.id === item.id);
+              return (
+                <div key={item.id} onClick={() => {
+                  if (existing) { setActiveChat(existing); setTab("chats"); }
+                  else if (item.userId) {
+                    const u = TEST_ACCOUNTS.find(a => a.id === item.userId);
+                    if (u) {
+                      const nc: Chat = { id: item.id, type: "personal", name: u.name, avatar: u.avatar, lastMessage: "Напишите первым!", lastTime: "", unread: 0, online: u.status === "online" };
+                      setChats(prev => [nc, ...prev]);
+                      setActiveChat(nc);
+                    }
+                  }
+                  setSearchQuery("");
+                  setTab("chats");
+                }} className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all jnk-chat-item">
+                  <Avatar text={item.avatar} size={44} />
+                  <div>
+                    <p className="font-semibold text-white text-sm">{item.name}</p>
+                    <p className="text-xs" style={{ color: "var(--jnk-text-muted)" }}>{item.sub}</p>
+                  </div>
                 </div>
+              );
+            })}
+            {allSearchItems.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.sub.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+              <div className="flex flex-col items-center justify-center h-32 gap-2 opacity-40">
+                <Icon name="SearchX" size={32} style={{ color: "var(--jnk-text-muted)" }} />
+                <p className="text-sm" style={{ color: "var(--jnk-text-muted)" }}>Ничего не найдено</p>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
@@ -1457,17 +1626,40 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
 // ─── Root ─────────────────────────────────────────────────────────────────────
 export default function Index() {
-  const [screen, setScreen] = useState<Screen>("auth");
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [screen, setScreen] = useState<Screen>(() => {
+    try {
+      const saved = localStorage.getItem(LS_USER_KEY);
+      if (saved) {
+        const u: User = JSON.parse(saved);
+        if (u.isAdmin) return "admin";
+        return "app";
+      }
+    } catch (e) { console.warn(e); }
+    return "auth";
+  });
+
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem(LS_USER_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) { console.warn(e); return null; }
+  });
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);
+    try { localStorage.setItem(LS_USER_KEY, JSON.stringify(user)); } catch (e) { console.warn(e); }
     if (user.isAdmin) setScreen("admin");
     else setScreen("app");
   };
 
+  const handleLogout = () => {
+    setCurrentUser(null);
+    try { localStorage.removeItem(LS_USER_KEY); } catch (e) { console.warn(e); }
+    setScreen("auth");
+  };
+
   if (screen === "auth") return <AuthScreen onLogin={handleLogin} />;
-  if (screen === "admin" && currentUser) return <AdminPanel onLogout={() => { setCurrentUser(null); setScreen("auth"); }} />;
-  if (screen === "app" && currentUser) return <AppScreen currentUser={currentUser} onLogout={() => { setCurrentUser(null); setScreen("auth"); }} />;
-  return null;
+  if (screen === "admin" && currentUser) return <AdminPanel onLogout={handleLogout} />;
+  if (screen === "app" && currentUser) return <AppScreen currentUser={currentUser} onLogout={handleLogout} />;
+  return <AuthScreen onLogin={handleLogin} />;
 }
